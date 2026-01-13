@@ -39,9 +39,11 @@
                 <h1 style="margin:0; border:0; padding:0;">Ausleihen Übersicht</h1>
                 <div class="filter-group">
                     <button class="btn-filter active" onclick="setFilter('all', this)">Alle</button>
-                    <button class="btn-filter" onclick="setFilter('incomplete', this)">Unvollständig</button>
-                    <button class="btn-filter" onclick="setFilter('open', this)">Offen</button>
-                    <button class="btn-filter" onclick="setFilter('returned', this)">Erledigt</button>
+                    <button class="btn-filter filter-incomplete"
+                        onclick="setFilter('incomplete', this)">Unvollständig</button>
+                    <button class="btn-filter filter-open" onclick="setFilter('open', this)">Offen</button>
+                    <button class="btn-filter filter-returned" onclick="setFilter('returned', this)">Erledigt</button>
+                    <button class="btn-filter filter-overdue" onclick="setFilter('overdue', this)">Überfällig</button>
                 </div>
             </div>
 
@@ -64,11 +66,11 @@
                 <input type="hidden" id="complete-id">
                 <div class="form-group">
                     <label>Gerät</label>
-                    <input type="text" id="complete-device" required placeholder="z.B. NB-A067">
+                    <input type="text" id="complete-device" required>
                 </div>
                 <div class="form-group" id="complete-deposit-group">
                     <label>Depot</label>
-                    <input type="text" id="complete-deposit" required placeholder="z.B. ID">
+                    <input type="text" id="complete-deposit" required>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                     <button type="submit" class="btn-primary" style="flex:1; margin:0;">Vervollständigen</button>
@@ -276,11 +278,21 @@
             e.preventDefault();
             const id = document.getElementById('complete-id').value;
             const depositVal = document.getElementById('complete-deposit').value;
+            const loan = loansData.find(l => l.id == id);
             const updateData = {
                 device: document.getElementById('complete-device').value,
                 deposit: depositVal || '-',
                 isComplete: true
             };
+
+            // If it's a student and returnISO is missing/was just placeholder, ensure it's set
+            if (!loan.returnISO && loan.type === 'Student' && loan.returnDate.includes(':')) {
+                const now = new Date();
+                const [h, m] = loan.returnDate.split(':');
+                const isoDate = new Date(now);
+                isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                updateData.returnISO = isoDate.toISOString();
+            }
 
             try {
                 const response = await fetch('/api/admin/update', {
@@ -300,9 +312,12 @@
             }
         });
 
+        let currentEditLoan = null;
+
         function showEditModal(id) {
             const loan = loansData.find(l => l.id == id);
             if (!loan) return;
+            currentEditLoan = loan;
 
             document.getElementById('edit-id').value = loan.id;
             document.getElementById('edit-device').value = loan.device;
@@ -334,6 +349,18 @@
                 returnDate: document.getElementById('edit-returnDate').value,
                 deposit: document.getElementById('edit-deposit').value
             };
+
+            // Basic logic: if returnDate changed and looks like a time, update returnISO
+            if (currentEditLoan && updateData.returnDate !== currentEditLoan.returnDate) {
+                if (updateData.returnDate.includes(':') && !updateData.returnDate.includes('.')) {
+                    // It's likely just a time (HH:MM)
+                    const now = new Date();
+                    const [h, m] = updateData.returnDate.split(':');
+                    const isoDate = new Date(now);
+                    isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                    updateData.returnISO = isoDate.toISOString();
+                }
+            }
 
             try {
                 const response = await fetch('/api/admin/update', {
@@ -377,9 +404,19 @@
 
             // Apply filter
             const filteredLoans = loans.filter(loan => {
-                if (currentFilter === 'open') return !loan.returned && loan.isComplete !== false;
-                if (currentFilter === 'incomplete') return loan.isComplete === false;
+                const isIncomplete = loan.isComplete === false;
+                let isOverdue = false;
+                if (!loan.returned && !isIncomplete && loan.returnISO) {
+                    const returnDate = new Date(loan.returnISO);
+                    if (returnDate < new Date()) {
+                        isOverdue = true;
+                    }
+                }
+
+                if (currentFilter === 'open') return !loan.returned && !isIncomplete;
+                if (currentFilter === 'incomplete') return isIncomplete;
                 if (currentFilter === 'returned') return loan.returned;
+                if (currentFilter === 'overdue') return isOverdue;
                 return true;
             });
 
@@ -402,8 +439,23 @@
                 const isStaff = loan.type === 'Staff';
                 const isIncomplete = loan.isComplete === false;
 
+                // Overdue Check
+                let isOverdue = false;
+                if (!loan.returned && !isIncomplete && loan.returnISO) {
+                    const returnDate = new Date(loan.returnISO);
+                    if (returnDate < new Date()) {
+                        isOverdue = true;
+                    }
+                }
+
                 const card = document.createElement('div');
-                card.className = `loan-card ${loan.returned ? 'returned' : (isIncomplete ? 'incomplete' : 'active')}`;
+                let cardClass = 'loan-card ';
+                if (loan.returned) cardClass += 'returned';
+                else if (isIncomplete) cardClass += 'incomplete';
+                else if (isOverdue) cardClass += 'overdue';
+                else cardClass += 'active';
+
+                card.className = cardClass;
 
                 card.innerHTML = `
                     <div class="loan-info">
@@ -413,13 +465,14 @@
                                 ${loan.type || 'Lernende/r'}
                             </span>
                             ${isIncomplete ? '<span class="status-badge status-incomplete">Unvollständig</span>' : ''}
+                            ${isOverdue ? '<span class="status-badge status-overdue">Überfällig</span>' : ''}
                         </div>
                         <div class="loan-details">
                             <div class="detail-item">
                                 <strong>Person</strong>
                                 ${loan.firstname} ${loan.lastname} ${!isStaff && loan.class !== '-' ? `(${loan.class})` : ''}
                             </div>
-                            <div class="detail-item">
+                            <div class="detail-item" style="${isOverdue ? 'color: #e74c3c; font-weight: bold;' : ''}">
                                 <strong>Fällig</strong>
                                 ${loan.returnDate} ${!loan.returnDate.includes(':') && !loan.returnDate.includes('.') && loan.returnDate !== '-' ? 'Uhr' : ''}
                             </div>
@@ -441,7 +494,7 @@
                                 Vervollständigen
                             </button>
                         ` : `
-                            <button class="btn-small" style="background:${loan.returned ? '#f39c12' : 'var(--primary-color)'}; color:white;" onclick="toggleReturnStatus(${loan.id}, ${loan.returned})">
+                            <button class="btn-small" style="background:${loan.returned ? '#f39c12' : (isOverdue ? '#e74c3c' : 'var(--primary-color)')}; color:white;" onclick="toggleReturnStatus(${loan.id}, ${loan.returned})">
                                 ${loan.returned ? 'Erledigt' : 'Rückgabe'}
                             </button>
                         `}

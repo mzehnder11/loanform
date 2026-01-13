@@ -1,32 +1,18 @@
 [
   {
-    "id": 1768334699285,
-    "lastname": "Malik",
-    "firstname": "Zehnder",
-    "class": "wjdzfvwd",
-    "email": "erfqewr@eugzw",
-    "phone": "91324671234",
-    "returnDate": "05:04",
+    "id": 1768337166793,
+    "lastname": "qwedq",
+    "firstname": "wefw",
+    "class": "wefw",
+    "email": "wefwe@wefwe",
+    "phone": "123412",
+    "returnDate": "23:04",
+    "returnISO": "2026-01-13T22:04:00.000Z",
     "type": "Student",
-    "isComplete": true,
-    "device": "NB-iqwgzdiq",
-    "deposit": "uehcew",
-    "returned": true,
-    "timestamp": "2026-01-13T20:04:59.285Z"
-  },
-  {
-    "id": 1768334838464,
-    "lastname": "Zehnder",
-    "firstname": "Malik",
-    "class": "wefwef",
-    "email": "malik.zehnder1@gmail.com",
-    "phone": "0795184992",
-    "returnDate": "13:04",
-    "type": "Student",
-    "isComplete": true,
-    "device": "ertg34",
-    "deposit": "rtz2435",
+    "isComplete": false,
+    "device": "-",
+    "deposit": "-",
     "returned": false,
-    "timestamp": "2026-01-13T20:07:18.464Z"
+    "timestamp": "2026-01-13T20:46:06.793Z"
   }
 ]

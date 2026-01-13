@@ -439,6 +439,11 @@ button.btn-primary:hover {
     border-left-color: #3498db;
 }
 
+.loan-card.overdue {
+    border-left-color: #e74c3c;
+    background-color: #fffafa;
+}
+
 .status-badge {
     padding: 4px 8px;
     font-size: 0.75rem;
@@ -454,6 +459,11 @@ button.btn-primary:hover {
 .status-badge.status-returned {
     background-color: #fff3e0;
     color: #f39c12;
+}
+
+.status-badge.status-overdue {
+    background-color: #fdeaea;
+    color: #e74c3c;
 }
 
 /* Filter Buttons */
@@ -476,6 +486,22 @@ button.btn-primary:hover {
 .btn-filter.active {
     background: var(--secondary-color);
     color: white;
+}
+
+.btn-filter.filter-incomplete.active {
+    background-color: #3498db;
+}
+
+.btn-filter.filter-open.active {
+    background-color: var(--primary-color);
+}
+
+.btn-filter.filter-returned.active {
+    background-color: #f39c12;
+}
+
+.btn-filter.filter-overdue.active {
+    background-color: #e74c3c;
 }
 
 /* Loan Content */

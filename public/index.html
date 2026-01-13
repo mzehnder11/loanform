@@ -65,7 +65,7 @@
                 <div id="student-only-fields">
                     <div class="form-group">
                         <label for="class">Klasse</label>
-                        <input type="text" id="class" name="class" required placeholder="z.B. HSA25B">
+                        <input type="text" id="class" name="class" required>
                     </div>
 
                     <div class="form-group">
@@ -166,18 +166,36 @@
 
             // Combine date and time for storage
             let returnDate = '';
+            let returnISO = '';
+            const now = new Date();
+            const dateToUse = dateVal ? new Date(dateVal) : now;
+
             if (isStudent) {
                 returnDate = timeVal;
+                // For students, the return date is always today
+                const [h, m] = timeVal.split(':');
+                const isoDate = new Date(now);
+                isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                returnISO = isoDate.toISOString();
             } else {
                 if (dateVal && timeVal) {
-                    // Format date nicely
-                    const d = new Date(dateVal);
-                    const formattedDate = d.toLocaleDateString('de-CH');
+                    const [h, m] = timeVal.split(':');
+                    const isoDate = new Date(dateVal);
+                    isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                    returnISO = isoDate.toISOString();
+
+                    const formattedDate = isoDate.toLocaleDateString('de-CH');
                     returnDate = `${formattedDate}, ${timeVal}`;
                 } else if (dateVal) {
-                    const d = new Date(dateVal);
-                    returnDate = d.toLocaleDateString('de-CH');
-                } else {
+                    const isoDate = new Date(dateVal);
+                    isoDate.setHours(23, 59, 59, 999);
+                    returnISO = isoDate.toISOString();
+                    returnDate = isoDate.toLocaleDateString('de-CH');
+                } else if (timeVal) {
+                    const [h, m] = timeVal.split(':');
+                    const isoDate = new Date(now);
+                    isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
+                    returnISO = isoDate.toISOString();
                     returnDate = timeVal;
                 }
             }
@@ -188,6 +206,7 @@
 
             // Override/Add fields
             data.returnDate = returnDate;
+            data.returnISO = returnISO;
             data.type = isStudent ? 'Student' : 'Staff';
             data.isComplete = false; // Initial status is incomplete
             data.device = '-'; // To be filled by Admin
