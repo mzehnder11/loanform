@@ -58,6 +58,39 @@
     opacity: 1;
 }
 
+/* Login Overlay */
+#login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    /* Solid white background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    /* Very high z-index */
+}
+
+.login-box {
+    background: white;
+    padding: 3rem 2rem;
+    border: 1px solid #ddd;
+    width: 95%;
+    /* More width on very small screens */
+    max-width: 400px;
+    text-align: center;
+    border-top: 4px solid var(--primary-color);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.login-box button.btn-primary {
+    width: 100%;
+    margin: 1.5rem 0 0 0;
+}
+
 :root {
     --primary-color: #51AE32;
     /* BBZ Green */
@@ -505,6 +538,12 @@ button.btn-primary:hover {
 }
 
 /* Responsive */
+@media (max-width: 540px) {
+    .login-box {
+        padding: 2rem 1.5rem;
+    }
+}
+
 @media (max-width: 1100px) {
     #adminPanel {
         padding: 1.5rem;
