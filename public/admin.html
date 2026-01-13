@@ -32,12 +32,13 @@
     </header>
 
     <main>
-        <div class="card" id="adminPanel" style="display:none; max-width: 1000px;">
+        <div class="card" id="adminPanel" style="display:none; max-width: 1300px;">
             <div
                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                 <h1 style="margin:0; border:0; padding:0;">Ausleihen Übersicht</h1>
                 <div class="filter-group">
                     <button class="btn-filter active" onclick="setFilter('all', this)">Alle</button>
+                    <button class="btn-filter" onclick="setFilter('incomplete', this)">Unvollständig</button>
                     <button class="btn-filter" onclick="setFilter('open', this)">Offen</button>
                     <button class="btn-filter" onclick="setFilter('returned', this)">Erledigt</button>
                 </div>
@@ -49,6 +50,33 @@
             </div>
         </div>
     </main>
+
+    <!-- Complete Loan Modal -->
+    <div id="completeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin:0;">Ausleihe vervollständigen</h2>
+                <span class="close-btn" onclick="closeCompleteModal()">&times;</span>
+            </div>
+            <p id="complete-person-info" style="margin-bottom: 1.5rem; color: #666;"></p>
+            <form id="completeForm">
+                <input type="hidden" id="complete-id">
+                <div class="form-group">
+                    <label>Gerät</label>
+                    <input type="text" id="complete-device" required placeholder="z.B. NB-A067">
+                </div>
+                <div class="form-group" id="complete-deposit-group">
+                    <label>Depot</label>
+                    <input type="text" id="complete-deposit" required placeholder="z.B. ID">
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex:1; margin:0;">Vervollständigen</button>
+                    <button type="button" onclick="closeCompleteModal()" class="btn-primary"
+                        style="flex:1; margin:0; background:#999;">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Edit Modal -->
     <div id="editModal" class="modal">
@@ -75,26 +103,26 @@
                 </div>
                 <div class="form-group">
                     <label>Klasse</label>
-                    <input type="text" id="edit-class" required>
+                    <input type="text" id="edit-class">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label>E-Mail</label>
-                        <input type="email" id="edit-email" required>
+                        <input type="email" id="edit-email">
                     </div>
                     <div class="form-group">
                         <label>Telefon</label>
-                        <input type="text" id="edit-phone" required>
+                        <input type="text" id="edit-phone">
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
-                        <label>Bis (Uhrzeit)</label>
-                        <input type="time" id="edit-returnDate" required>
+                        <label>Fällig bis</label>
+                        <input type="text" id="edit-returnDate" required>
                     </div>
                     <div class="form-group">
                         <label>Depot</label>
-                        <input type="text" id="edit-deposit" required>
+                        <input type="text" id="edit-deposit">
                     </div>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -216,6 +244,61 @@
             }
         }
 
+        function showCompleteModal(id) {
+            const loan = loansData.find(l => l.id == id);
+            if (!loan) return;
+
+            document.getElementById('complete-id').value = loan.id;
+            document.getElementById('complete-person-info').textContent = `Person: ${loan.firstname} ${loan.lastname}`;
+            document.getElementById('complete-device').value = '';
+            document.getElementById('complete-deposit').value = '';
+
+            const depositGroup = document.getElementById('complete-deposit-group');
+            const depositInput = document.getElementById('complete-deposit');
+
+            if (loan.type === 'Staff') {
+                depositGroup.style.display = 'none';
+                depositInput.required = false;
+            } else {
+                depositGroup.style.display = 'block';
+                depositInput.required = true;
+            }
+
+            document.getElementById('completeModal').style.display = 'flex';
+        }
+
+        function closeCompleteModal() {
+            document.getElementById('completeModal').style.display = 'none';
+        }
+
+        document.getElementById('completeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('complete-id').value;
+            const depositVal = document.getElementById('complete-deposit').value;
+            const updateData = {
+                device: document.getElementById('complete-device').value,
+                deposit: depositVal || '-',
+                isComplete: true
+            };
+
+            try {
+                const response = await fetch('/api/admin/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: currentToken, id, updateData })
+                });
+
+                if (response.ok) {
+                    showToast('Ausleihe vervollständigt.');
+                    closeCompleteModal();
+                    verifyToken(currentToken);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Fehler beim Speichern.');
+            }
+        });
+
         function showEditModal(id) {
             const loan = loansData.find(l => l.id == id);
             if (!loan) return;
@@ -293,43 +376,58 @@
 
             // Apply filter
             const filteredLoans = loans.filter(loan => {
-                if (currentFilter === 'open') return !loan.returned;
+                if (currentFilter === 'open') return !loan.returned && loan.isComplete !== false;
+                if (currentFilter === 'incomplete') return loan.isComplete === false;
                 if (currentFilter === 'returned') return loan.returned;
                 return true;
             });
 
             if (filteredLoans.length === 0) {
-                list.innerHTML = `<p style="text-align: center; color: #999; padding: 2rem;">Keine ${currentFilter === 'all' ? 'Ausleihen' : (currentFilter === 'open' ? 'offenen Ausleihen' : 'erledigten Ausleihen')} gefunden.</p>`;
+                list.innerHTML = `<p style="text-align: center; color: #999; padding: 2rem;">Keine passenden Ausleihen gefunden.</p>`;
                 return;
             }
 
             filteredLoans.sort((a, b) => {
                 if (a.returned === b.returned) {
-                    return b.id - a.id; // Newest first
+                    if (a.isComplete === b.isComplete) {
+                        return b.id - a.id;
+                    }
+                    return a.isComplete === false ? -1 : 1;
                 }
                 return a.returned ? 1 : -1;
             });
 
             filteredLoans.forEach(loan => {
+                const isStaff = loan.type === 'Staff';
+                const isIncomplete = loan.isComplete === false;
+
                 const card = document.createElement('div');
-                card.className = `loan-card ${loan.returned ? 'returned' : 'active'}`;
+                card.className = `loan-card ${loan.returned ? 'returned' : (isIncomplete ? 'incomplete' : 'active')}`;
 
                 card.innerHTML = `
                     <div class="loan-info">
-                        <h3>${loan.device}</h3>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                            <h3 style="margin:0;">${loan.device}</h3>
+                            <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #eee; color: #666; font-weight: bold; text-transform: uppercase;">
+                                ${loan.type || 'Lernende/r'}
+                            </span>
+                            ${isIncomplete ? '<span class="status-badge status-incomplete">Unvollständig</span>' : ''}
+                        </div>
                         <div class="loan-details">
                             <div class="detail-item">
                                 <strong>Person</strong>
-                                ${loan.firstname} ${loan.lastname} (${loan.class})
+                                ${loan.firstname} ${loan.lastname} ${!isStaff && loan.class !== '-' ? `(${loan.class})` : ''}
                             </div>
                             <div class="detail-item">
                                 <strong>Fällig</strong>
-                                ${loan.returnDate} Uhr
+                                ${loan.returnDate} ${!loan.returnDate.includes(':') && !loan.returnDate.includes('.') && loan.returnDate !== '-' ? 'Uhr' : ''}
                             </div>
+                            ${!isStaff && loan.email !== '-' ? `
                             <div class="detail-item">
                                 <strong>Kontakt</strong>
                                 ${loan.email}<br>${loan.phone}
                             </div>
+                            ` : ''}
                             <div class="detail-item">
                                 <strong>Depot</strong>
                                 ${loan.deposit}
@@ -337,17 +435,21 @@
                         </div>
                     </div>
                     <div class="loan-actions">
-                        <button class="btn-small" style="background:${loan.returned ? '#f39c12' : 'var(--primary-color)'}; color:white;" onclick="toggleReturnStatus(${loan.id}, ${loan.returned})">
-                            ${loan.returned ? 'Erledigt' : 'Rückgabe'}
-                        </button>
+                        ${isIncomplete ? `
+                            <button class="btn-small" style="background:#3498db; color:white;" onclick="showCompleteModal(${loan.id})">
+                                Vervollständigen
+                            </button>
+                        ` : `
+                            <button class="btn-small" style="background:${loan.returned ? '#f39c12' : 'var(--primary-color)'}; color:white;" onclick="toggleReturnStatus(${loan.id}, ${loan.returned})">
+                                ${loan.returned ? 'Erledigt' : 'Rückgabe'}
+                            </button>
+                        `}
                         <button class="btn-small" onclick="showEditModal(${loan.id})">Bearbeiten</button>
                     </div>
                 `;
                 list.appendChild(card);
             });
         }
-
-
 
         function showToast(msg) {
             const toast = document.createElement('div');

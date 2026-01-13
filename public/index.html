@@ -35,45 +35,62 @@
         <div class="card" id="form-card">
             <h1>Materialausleihe</h1>
             <form id="loanForm">
-                <div class="form-group">
-                    <label for="device">Gerät</label>
-                    <input type="text" id="device" name="device" required placeholder="z.B. NB-A067">
-                </div>
-
-                <div class="form-group">
-                    <label for="lastname">Name</label>
-                    <input type="text" id="lastname" name="lastname" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="firstname">Vorname</label>
-                    <input type="text" id="firstname" name="firstname" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="class">Klasse</label>
-                    <input type="text" id="class" name="class" required placeholder="z.B. HSA25B">
-                </div>
-
-                <div class="form-group">
-                    <label for="email">E-Mail</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="phone">Telefonnummer</label>
-                    <input type="text" id="phone" name="phone" required>
-                </div>
-
-                <div class="spacer">
+                <!-- Name and Vorname first -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
-                        <label for="returnDate">Ausleihen bis (Uhrzeit)</label>
-                        <input type="time" id="returnDate" name="returnDate" required>
+                        <label for="lastname">Name</label>
+                        <input type="text" id="lastname" name="lastname" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="deposit">Depot</label>
-                        <input type="text" id="deposit" name="deposit" required placeholder="z.B. ID">
+                        <label for="firstname">Vorname</label>
+                        <input type="text" id="firstname" name="firstname" required>
+                    </div>
+                </div>
+
+                <!-- User Type Selection (Multiple Choice) -->
+                <div class="user-type-selector">
+                    <div class="user-type-option">
+                        <input type="radio" id="type-student" name="userType" value="student" checked
+                            onchange="toggleUserType()">
+                        <label for="type-student" class="user-type-label">Lernende/r</label>
+                    </div>
+                    <div class="user-type-option">
+                        <input type="radio" id="type-staff" name="userType" value="staff" onchange="toggleUserType()">
+                        <label for="type-staff" class="user-type-label">Lehrperson / Mitarbeiter/in</label>
+                    </div>
+                </div>
+
+                <div id="student-only-fields">
+                    <div class="form-group">
+                        <label for="class">Klasse</label>
+                        <input type="text" id="class" name="class" required placeholder="z.B. HSA25B">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">E-Mail</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Telefonnummer</label>
+                        <input type="text" id="phone" name="phone" required>
+                    </div>
+                </div>
+
+                <div class="spacer" id="return-section">
+                    <label>Ausleihen bis</label>
+                    <div class="datetime-group">
+                        <div class="form-group" id="date-group" style="display: none;">
+                            <div class="input-with-icon input-date">
+                                <input type="date" id="returnDate_date" name="returnDate_date">
+                            </div>
+                        </div>
+                        <div class="form-group" id="time-group">
+                            <div class="input-with-icon input-time">
+                                <input type="time" id="returnDate_time" name="returnDate_time" required>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -83,12 +100,109 @@
     </main>
 
     <script>
+        function toggleUserType() {
+            const isStudent = document.getElementById('type-student').checked;
+            const studentFields = document.getElementById('student-only-fields');
+            const dateGroup = document.getElementById('date-group');
+            const dateTimeGroup = document.querySelector('.datetime-group');
+
+            const classInput = document.getElementById('class');
+            const emailInput = document.getElementById('email');
+            const phoneInput = document.getElementById('phone');
+            const dateInput = document.getElementById('returnDate_date');
+            const timeInput = document.getElementById('returnDate_time');
+
+            if (isStudent) {
+                // Show student fields
+                studentFields.classList.remove('hidden');
+                dateGroup.style.display = 'none';
+                dateTimeGroup.style.gridTemplateColumns = '1fr';
+
+                // Add required attributes
+                classInput.required = true;
+                emailInput.required = true;
+                phoneInput.required = true;
+                dateInput.required = false;
+                timeInput.required = true;
+
+                // Set section label
+                document.querySelector('#return-section label').textContent = 'Ausleihen bis (Uhrzeit)';
+            } else {
+                // Hide student fields
+                studentFields.classList.add('hidden');
+                dateGroup.style.display = 'block';
+                dateTimeGroup.style.gridTemplateColumns = '1fr 1fr';
+
+                // Remove required attributes
+                classInput.required = false;
+                emailInput.required = false;
+                phoneInput.required = false;
+
+                // For staff, neither are strictly required according to "one or both", 
+                // but let's handle validation in submit
+                dateInput.required = false;
+                timeInput.required = false;
+
+                // Set section label
+                document.querySelector('#return-section label').textContent = 'Ausleihen bis (Datum / Zeit)';
+            }
+        }
+
+        window.onload = toggleUserType;
+
         document.getElementById('loanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const isStudent = document.getElementById('type-student').checked;
+            const dateVal = document.getElementById('returnDate_date').value;
+            const timeVal = document.getElementById('returnDate_time').value;
+
+            // Manual validation for staff (at least one of date or time)
+            if (!isStudent && !dateVal && !timeVal) {
+                showToast('Bitte geben Sie entweder ein Datum oder eine Uhrzeit an.');
+                return;
+            }
+
+            // Combine date and time for storage
+            let returnDate = '';
+            if (isStudent) {
+                returnDate = timeVal;
+            } else {
+                if (dateVal && timeVal) {
+                    // Format date nicely
+                    const d = new Date(dateVal);
+                    const formattedDate = d.toLocaleDateString('de-CH');
+                    returnDate = `${formattedDate}, ${timeVal}`;
+                } else if (dateVal) {
+                    const d = new Date(dateVal);
+                    returnDate = d.toLocaleDateString('de-CH');
+                } else {
+                    returnDate = timeVal;
+                }
+            }
 
             // Create form data object
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
+
+            // Override/Add fields
+            data.returnDate = returnDate;
+            data.type = isStudent ? 'Student' : 'Staff';
+            data.isComplete = false; // Initial status is incomplete
+            data.device = '-'; // To be filled by Admin
+            data.deposit = '-'; // To be filled by Admin
+
+            // Clean up unneeded fields for staff
+            if (!isStudent) {
+                data.class = '-';
+                data.email = '-';
+                data.phone = '-';
+            }
+
+            // Clean up the raw date/time fields from FormData
+            delete data.returnDate_date;
+            delete data.returnDate_time;
+            delete data.userType;
 
             try {
                 const response = await fetch('/api/loans', {
@@ -111,7 +225,7 @@
                             <svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14l5 5 12-12-1.5-1.5z"/></svg>
                         </div>
                         <h2 class="success-title">Erfolgreich gesendet!</h2>
-                        <p class="success-text">Ihre Ausleihe wurde erfolgreich erfasst.</p>
+                        <p class="success-text">Ihre Ausleihe wurde erfolgreich erfasst und wird nun vom Admin vervollständigt.</p>
                         <button onclick="window.location.reload()" class="btn-primary" style="margin: 0 auto;">Neue Ausleihe</button>
                     `;
                     document.getElementById('main-content').appendChild(successDiv);
