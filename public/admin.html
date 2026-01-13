@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Übersicht - BBZ Olten</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header>
+        <div class="header-overlay">
+            <div class="header-top">
+                <a href="index.html" class="brand">
+                    BBZ Olten
+                </a>
+                <nav>
+                    <a href="index.html" class="nav-link">ZUM FORMULAR</a>
+                </nav>
+            </div>
+            <div class="header-bars">
+                <div class="bar-green"></div>
+                <div class="bar-blue"></div>
+                <div class="bar-teal"></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="card" id="adminPanel" style="display:none; max-width: 1000px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                <h1 style="margin:0; border:0; padding:0;">Ausleihen Übersicht</h1>
+                <div class="filter-group">
+                    <button class="btn-filter active" onclick="setFilter('all', this)">Alle</button>
+                    <button class="btn-filter" onclick="setFilter('open', this)">Offen</button>
+                    <button class="btn-filter" onclick="setFilter('returned', this)">Erledigt</button>
+                </div>
+            </div>
+
+            <div id="admin-list" class="admin-grid">
+                <!-- Loan items will be populated here -->
+                <p style="text-align: center; color: #999;">Lade Daten...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin:0;">Ausleihe bearbeiten</h2>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Gerät</label>
+                    <input type="text" id="edit-device" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Vorname</label>
+                        <input type="text" id="edit-firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nachname</label>
+                        <input type="text" id="edit-lastname" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Klasse</label>
+                    <input type="text" id="edit-class" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>E-Mail</label>
+                        <input type="email" id="edit-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon</label>
+                        <input type="text" id="edit-phone" required>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Bis (Uhrzeit)</label>
+                        <input type="time" id="edit-returnDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Depot</label>
+                        <input type="text" id="edit-deposit" required>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex:1; margin:0;">Speichern</button>
+                    <button type="button" onclick="closeModal()" class="btn-primary"
+                        style="flex:1; margin:0; background:#999;">Abbrechen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Admin Login</h2>
+            <p style="margin-bottom: 1rem; color: #666;">Bitte Passwort eingeben</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="password" required placeholder="Passwort...">
+                </div>
+                <button type="submit" class="btn-primary">Einloggen</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let loansData = [];
+        let currentFilter = 'all';
+
+        function setFilter(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderList(loansData);
+        }
+
+        // Cookie Helpers
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                let date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+        }
+
+        function getCookie(name) {
+            let nameEQ = name + "=";
+            let ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        window.addEventListener('load', () => {
+            const savedToken = getCookie('admin_token');
+            if (savedToken) {
+                verifyToken(savedToken);
+            }
+        });
+
+        async function verifyToken(token) {
+            try {
+                const response = await fetch('/api/admin/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.authorized) {
+                        currentToken = token;
+                        document.getElementById('login-overlay').style.display = 'none';
+                        document.getElementById('adminPanel').style.display = 'block';
+                        loansData = data.loans;
+                        renderList(data.loans);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            loadLoans(password);
+        });
+
+        async function loadLoans(password) {
+            try {
+                const response = await fetch('/api/admin/loans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.authorized) {
+                        currentToken = data.token;
+                        setCookie('admin_token', data.token, 7);
+                        document.getElementById('login-overlay').style.display = 'none';
+                        document.getElementById('adminPanel').style.display = 'block';
+                        loansData = data.loans;
+                        renderList(data.loans);
+                    }
+                } else {
+                    showToast('Falsches Passwort!');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Verbindungsfehler.');
+            }
+        }
+
+        function showEditModal(id) {
+            const loan = loansData.find(l => l.id == id);
+            if (!loan) return;
+
+            document.getElementById('edit-id').value = loan.id;
+            document.getElementById('edit-device').value = loan.device;
+            document.getElementById('edit-firstname').value = loan.firstname;
+            document.getElementById('edit-lastname').value = loan.lastname;
+            document.getElementById('edit-class').value = loan.class;
+            document.getElementById('edit-email').value = loan.email;
+            document.getElementById('edit-phone').value = loan.phone;
+            document.getElementById('edit-returnDate').value = loan.returnDate;
+            document.getElementById('edit-deposit').value = loan.deposit;
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const updateData = {
+                device: document.getElementById('edit-device').value,
+                firstname: document.getElementById('edit-firstname').value,
+                lastname: document.getElementById('edit-lastname').value,
+                class: document.getElementById('edit-class').value,
+                email: document.getElementById('edit-email').value,
+                phone: document.getElementById('edit-phone').value,
+                returnDate: document.getElementById('edit-returnDate').value,
+                deposit: document.getElementById('edit-deposit').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: currentToken, id, updateData })
+                });
+
+                if (response.ok) {
+                    showToast('Änderungen gespeichert.');
+                    closeModal();
+                    verifyToken(currentToken);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Fehler beim Speichern.');
+            }
+        });
+
+        async function toggleReturnStatus(id, currentStatus) {
+            try {
+                const response = await fetch('/api/admin/return', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: currentToken, id, status: !currentStatus })
+                });
+
+                if (response.ok) {
+                    await verifyToken(currentToken);
+                    showToast(currentStatus ? 'Wieder als aktiv markiert.' : 'Rückgabe bestätigt.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Fehler bei der Statusänderung.');
+            }
+        }
+
+        function renderList(loans) {
+            const list = document.getElementById('admin-list');
+            list.innerHTML = '';
+
+            // Apply filter
+            const filteredLoans = loans.filter(loan => {
+                if (currentFilter === 'open') return !loan.returned;
+                if (currentFilter === 'returned') return loan.returned;
+                return true;
+            });
+
+            if (filteredLoans.length === 0) {
+                list.innerHTML = `<p style="text-align: center; color: #999; padding: 2rem;">Keine ${currentFilter === 'all' ? 'Ausleihen' : (currentFilter === 'open' ? 'offenen Ausleihen' : 'erledigten Ausleihen')} gefunden.</p>`;
+                return;
+            }
+
+            filteredLoans.sort((a, b) => {
+                if (a.returned === b.returned) {
+                    return b.id - a.id; // Newest first
+                }
+                return a.returned ? 1 : -1;
+            });
+
+            filteredLoans.forEach(loan => {
+                const card = document.createElement('div');
+                card.className = `loan-card ${loan.returned ? 'returned' : 'active'}`;
+
+                card.innerHTML = `
+                    <div class="loan-info">
+                        <h3>${loan.device}</h3>
+                        <div class="loan-details">
+                            <div class="detail-item">
+                                <strong>Person</strong>
+                                ${loan.firstname} ${loan.lastname} (${loan.class})
+                            </div>
+                            <div class="detail-item">
+                                <strong>Fällig</strong>
+                                ${loan.returnDate} Uhr
+                            </div>
+                            <div class="detail-item">
+                                <strong>Kontakt</strong>
+                                ${loan.email}<br>${loan.phone}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Depot</strong>
+                                ${loan.deposit}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="loan-actions">
+                        <button class="btn-small" style="background:${loan.returned ? '#f39c12' : 'var(--primary-color)'}; color:white;" onclick="toggleReturnStatus(${loan.id}, ${loan.returned})">
+                            ${loan.returned ? 'Erledigt' : 'Rückgabe'}
+                        </button>
+                        <button class="btn-small" onclick="showEditModal(${loan.id})">Bearbeiten</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast show';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+</body>
+
+</html>

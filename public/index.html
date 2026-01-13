@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ausleihformular - BBZ Olten</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header>
+        <div class="header-overlay">
+            <div class="header-top">
+                <a href="index.html" class="brand">
+                    BBZ Olten
+                </a>
+                <nav>
+                    <a href="admin.html" class="nav-link">ADMIN LOGIN</a>
+                </nav>
+            </div>
+            <div class="header-bars">
+                <div class="bar-green"></div>
+                <div class="bar-blue"></div>
+                <div class="bar-teal"></div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <div class="card" id="form-card">
+            <h1>Materialausleihe</h1>
+            <form id="loanForm">
+                <div class="form-group">
+                    <label for="device">Gerät</label>
+                    <input type="text" id="device" name="device" required placeholder="z.B. NB-A067">
+                </div>
+
+                <div class="form-group">
+                    <label for="lastname">Name</label>
+                    <input type="text" id="lastname" name="lastname" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="firstname">Vorname</label>
+                    <input type="text" id="firstname" name="firstname" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="class">Klasse</label>
+                    <input type="text" id="class" name="class" required placeholder="z.B. HSA25B">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-Mail</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Telefonnummer</label>
+                    <input type="text" id="phone" name="phone" required>
+                </div>
+
+                <div class="spacer">
+                    <div class="form-group">
+                        <label for="returnDate">Ausleihen bis (Uhrzeit)</label>
+                        <input type="time" id="returnDate" name="returnDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="deposit">Depot</label>
+                        <input type="text" id="deposit" name="deposit" required placeholder="z.B. ID">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Absenden</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('loanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Create form data object
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/loans', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    // Hide the form card
+                    document.getElementById('form-card').style.display = 'none';
+
+                    // Create and show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'card success-message';
+                    successDiv.innerHTML = `
+                        <div class="success-icon">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14l5 5 12-12-1.5-1.5z"/></svg>
+                        </div>
+                        <h2 class="success-title">Erfolgreich gesendet!</h2>
+                        <p class="success-text">Ihre Ausleihe wurde erfolgreich erfasst.</p>
+                        <button onclick="window.location.reload()" class="btn-primary" style="margin: 0 auto;">Neue Ausleihe</button>
+                    `;
+                    document.getElementById('main-content').appendChild(successDiv);
+                } else {
+                    showToast('Fehler beim Speichern.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Ein Fehler ist aufgetreten.');
+            }
+        });
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast show';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+</body>
+
+</html>
