@@ -72,6 +72,24 @@
                     <label>Depot</label>
                     <input type="text" id="complete-deposit" required>
                 </div>
+                <div class="form-group" id="complete-photo-group">
+                    <label>Depot Foto</label>
+                    <div id="camera-container" style="display:none; margin-bottom: 0.5rem; position: relative;">
+                        <video id="video" width="100%" height="auto" autoplay style="border: 1px solid #ccc;"></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                        <button type="button" id="snap-btn" class="btn-small"
+                            style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 4px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                            FOTO AUFNEHMEN
+                        </button>
+                    </div>
+                    <div id="photo-preview-container" style="display:none; margin-bottom: 0.5rem;">
+                        <img id="photo-preview" src="" style="width:100%; border: 1px solid #ccc;">
+                        <button type="button" class="btn-small" onclick="retakePhoto()"
+                            style="margin-top: 0.5rem; width: 100%;">Foto zurücksetzen</button>
+                    </div>
+                    <button type="button" id="start-camera-btn" class="btn-small" onclick="initCamera()"
+                        style="width: 100%;">Foto machen</button>
+                </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                     <button type="submit" class="btn-primary" style="flex:1; margin:0;">Vervollständigen</button>
                     <button type="button" onclick="closeCompleteModal()" class="btn-primary"
@@ -256,21 +274,86 @@
             document.getElementById('complete-device').value = '';
             document.getElementById('complete-deposit').value = '';
 
+            // Reset photo
+            resetPhotoState();
+
             const depositGroup = document.getElementById('complete-deposit-group');
             const depositInput = document.getElementById('complete-deposit');
+            const photoGroup = document.getElementById('complete-photo-group');
 
             if (loan.type === 'Staff') {
                 depositGroup.style.display = 'none';
                 depositInput.required = false;
+                photoGroup.style.display = 'none';
             } else {
                 depositGroup.style.display = 'block';
                 depositInput.required = true;
+                photoGroup.style.display = 'block';
             }
 
             document.getElementById('completeModal').style.display = 'flex';
         }
 
+        let cameraStream = null;
+        let capturedPhotoBase64 = null;
+
+        async function initCamera() {
+            const container = document.getElementById('camera-container');
+            const video = document.getElementById('video');
+            const startBtn = document.getElementById('start-camera-btn');
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = cameraStream;
+                container.style.display = 'block';
+                startBtn.style.display = 'none';
+
+                document.getElementById('snap-btn').onclick = () => {
+                    const canvas = document.getElementById('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+
+                    capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                    showPhotoPreview(capturedPhotoBase64);
+                    stopCamera();
+                };
+            } catch (err) {
+                console.error("Camera error:", err);
+                showToast("Kamera konnte nicht gestartet werden.");
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('camera-container').style.display = 'none';
+        }
+
+        function showPhotoPreview(src) {
+            document.getElementById('photo-preview').src = src;
+            document.getElementById('photo-preview-container').style.display = 'block';
+            document.getElementById('start-camera-btn').style.display = 'none';
+        }
+
+        function retakePhoto() {
+            resetPhotoState();
+            initCamera();
+        }
+
+        function resetPhotoState() {
+            stopCamera();
+            capturedPhotoBase64 = null;
+            document.getElementById('photo-preview').src = '';
+            document.getElementById('photo-preview-container').style.display = 'none';
+            document.getElementById('start-camera-btn').style.display = 'block';
+            document.getElementById('camera-container').style.display = 'none';
+        }
+
         function closeCompleteModal() {
+            stopCamera();
             document.getElementById('completeModal').style.display = 'none';
         }
 
@@ -282,6 +365,7 @@
             const updateData = {
                 device: document.getElementById('complete-device').value,
                 deposit: depositVal || '-',
+                photo: capturedPhotoBase64,
                 isComplete: true
             };
 
@@ -485,6 +569,11 @@
                             <div class="detail-item">
                                 <strong>Depot</strong>
                                 ${loan.deposit}
+                                ${loan.photo ? `
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="#" onclick="showImage('${loan.photo}'); return false;" style="color: var(--primary-color); font-weight: bold; font-size: 0.75rem; text-decoration: underline;">FOTO ANZEIGEN</a>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -503,6 +592,32 @@
                 `;
                 list.appendChild(card);
             });
+        }
+
+        function showImage(src) {
+            const viewer = document.createElement('div');
+            viewer.style.position = 'fixed';
+            viewer.style.top = '0';
+            viewer.style.left = '0';
+            viewer.style.width = '100%';
+            viewer.style.height = '100%';
+            viewer.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            viewer.style.zIndex = '3000';
+            viewer.style.display = 'flex';
+            viewer.style.alignItems = 'center';
+            viewer.style.justifyContent = 'center';
+            viewer.style.cursor = 'zoom-out';
+            viewer.onclick = () => viewer.remove();
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.maxWidth = '90%';
+            img.style.maxHeight = '90%';
+            img.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+            img.style.border = '4px solid white';
+
+            viewer.appendChild(img);
+            document.body.appendChild(viewer);
         }
 
         function showToast(msg) {

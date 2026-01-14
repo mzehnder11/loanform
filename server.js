@@ -6,7 +6,8 @@ const crypto = require('crypto');
 const app = express();
 const PORT = 3000;
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '5mb' }));
+app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 app.use(express.static('public'));
 
 const DATA_FILE = path.join(__dirname, 'loans.json');
