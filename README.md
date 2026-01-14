@@ -19,9 +19,9 @@ Dies ist eine webbasierte Anwendung zur Verwaltung von Materialausleihen. Sie er
 ## Installation
 
 1. Navigieren Sie in das Projektverzeichnis.
-2. Installieren Sie die benötigten Abhängigkeiten mit dem Befehl:
+2. Der Server prüft beim Start automatisch, ob alle Abhängigkeiten installiert sind, und installiert diese bei Bedarf selbstständig. Alternativ können Sie diese manuell installieren mit:
    ```bash
-   npm install expres
+   npm install
    ```
 
 ## Konfiguration

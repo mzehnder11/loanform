@@ -1,7 +1,41 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// Auto-install dependencies if missing
+function checkAndInstallDependencies() {
+    const pkgPath = path.join(__dirname, 'package.json');
+    if (!fs.existsSync(pkgPath)) return;
+
+    try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        const deps = pkg.dependencies || {};
+        let missing = false;
+
+        for (const dep in deps) {
+            try {
+                require.resolve(dep);
+            } catch (e) {
+                console.log(`Abhängigkeit "${dep}" fehlt.`);
+                missing = true;
+                break;
+            }
+        }
+
+        if (missing) {
+            console.log('Installiere fehlende Abhängigkeiten... Bitte warten.');
+            execSync('npm install', { stdio: 'inherit' });
+            console.log('Abhängigkeiten erfolgreich installiert.');
+        }
+    } catch (err) {
+        console.error('Fehler beim Prüfen/Installieren der Abhängigkeiten:', err);
+    }
+}
+
+checkAndInstallDependencies();
+
+const express = require('express');
+const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const app = express();
 const PORT = 3000;
