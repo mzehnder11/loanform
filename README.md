@@ -51,6 +51,6 @@ Der Server läuft standardmässig auf Port 3000. Sie können die Anwendung unter
 
 - `server.js`: Der Node.js/Express Server, der die API-Endpunkte bereitstellt.
 - `public/`: Enthält die Frontend-Dateien (HTML, CSS, JavaScript).
-- `loans.json`: Speichert die Daten der getätigten Ausleihen.
+- `data.json`: Speichert die Daten der getätigten Ausleihen.
 - `admin.json`: Speichert das Such-Hash des Administrator-Passworts.
 - `setup_password.js`: Hilfsskript zum Setzen des Admin-Passworts.

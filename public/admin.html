@@ -74,21 +74,23 @@
                 </div>
                 <div class="form-group" id="complete-photo-group">
                     <label>Depot Foto</label>
-                    <div id="camera-container" style="display:none; margin-bottom: 0.5rem; position: relative;">
-                        <video id="video" width="100%" height="auto" autoplay style="border: 1px solid #ccc;"></video>
-                        <canvas id="canvas" style="display:none;"></canvas>
-                        <button type="button" id="snap-btn" class="btn-small"
+                    <div id="complete-camera-container"
+                        style="display:none; margin-bottom: 0.5rem; position: relative;">
+                        <video id="complete-video" width="100%" height="auto" autoplay
+                            style="border: 1px solid #ccc;"></video>
+                        <canvas id="complete-canvas" style="display:none;"></canvas>
+                        <button type="button" id="complete-snap-btn" class="btn-small"
                             style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 4px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                             FOTO AUFNEHMEN
                         </button>
                     </div>
-                    <div id="photo-preview-container" style="display:none; margin-bottom: 0.5rem;">
-                        <img id="photo-preview" src="" style="width:100%; border: 1px solid #ccc;">
-                        <button type="button" class="btn-small" onclick="retakePhoto()"
+                    <div id="complete-photo-preview-container" style="display:none; margin-bottom: 0.5rem;">
+                        <img id="complete-photo-preview" src="" style="width:100%; border: 1px solid #ccc;">
+                        <button type="button" class="btn-small" onclick="retakePhoto('complete')"
                             style="margin-top: 0.5rem; width: 100%;">Foto zurücksetzen</button>
                     </div>
-                    <button type="button" id="start-camera-btn" class="btn-small" onclick="initCamera()"
-                        style="width: 100%;">Foto machen</button>
+                    <button type="button" id="complete-start-camera-btn" class="btn-small"
+                        onclick="initCamera('complete')" style="width: 100%;">Foto machen</button>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                     <button type="submit" class="btn-primary" style="flex:1; margin:0;">Vervollständigen</button>
@@ -145,6 +147,30 @@
                         <label>Depot</label>
                         <input type="text" id="edit-deposit">
                     </div>
+                </div>
+                <div class="form-group" id="edit-photo-group">
+                    <label>Depot Foto</label>
+                    <div id="edit-camera-container" style="display:none; margin-bottom: 0.5rem; position: relative;">
+                        <video id="edit-video" width="100%" height="auto" autoplay
+                            style="border: 1px solid #ccc;"></video>
+                        <canvas id="edit-canvas" style="display:none;"></canvas>
+                        <button type="button" id="edit-snap-btn" class="btn-small"
+                            style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 4px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                            FOTO AUFNEHMEN
+                        </button>
+                    </div>
+                    <div id="edit-photo-preview-container" style="display:none; margin-bottom: 0.5rem;">
+                        <!-- Image hidden by user request -->
+                        <img id="edit-photo-preview" src="" style="display: none;">
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button type="button" class="btn-small" onclick="retakePhoto('edit')" style="flex: 1;">Foto
+                                ändern</button>
+                            <button type="button" class="btn-small" onclick="resetPhotoState('edit')"
+                                style="flex: 1; background: #e74c3c; color: white;">Foto löschen</button>
+                        </div>
+                    </div>
+                    <button type="button" id="edit-start-camera-btn" class="btn-small" onclick="initCamera('edit')"
+                        style="width: 100%;">Foto machen</button>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                     <button type="submit" class="btn-primary" style="flex:1; margin:0;">Speichern</button>
@@ -275,7 +301,7 @@
             document.getElementById('complete-deposit').value = '';
 
             // Reset photo
-            resetPhotoState();
+            resetPhotoState('complete');
 
             const depositGroup = document.getElementById('complete-deposit-group');
             const depositInput = document.getElementById('complete-deposit');
@@ -297,10 +323,10 @@
         let cameraStream = null;
         let capturedPhotoBase64 = null;
 
-        async function initCamera() {
-            const container = document.getElementById('camera-container');
-            const video = document.getElementById('video');
-            const startBtn = document.getElementById('start-camera-btn');
+        async function initCamera(prefix) {
+            const container = document.getElementById(`${prefix}-camera-container`);
+            const video = document.getElementById(`${prefix}-video`);
+            const startBtn = document.getElementById(`${prefix}-start-camera-btn`);
 
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -308,15 +334,15 @@
                 container.style.display = 'block';
                 startBtn.style.display = 'none';
 
-                document.getElementById('snap-btn').onclick = () => {
-                    const canvas = document.getElementById('canvas');
+                document.getElementById(`${prefix}-snap-btn`).onclick = () => {
+                    const canvas = document.getElementById(`${prefix}-canvas`);
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
 
                     capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                    showPhotoPreview(capturedPhotoBase64);
-                    stopCamera();
+                    showPhotoPreview(prefix, capturedPhotoBase64);
+                    stopCamera(prefix);
                 };
             } catch (err) {
                 console.error("Camera error:", err);
@@ -324,36 +350,44 @@
             }
         }
 
-        function stopCamera() {
+        function stopCamera(prefix) {
             if (cameraStream) {
                 cameraStream.getTracks().forEach(track => track.stop());
                 cameraStream = null;
             }
-            document.getElementById('camera-container').style.display = 'none';
+            if (prefix) {
+                const container = document.getElementById(`${prefix}-camera-container`);
+                if (container) container.style.display = 'none';
+            } else {
+                // Fallback for safety
+                document.querySelectorAll('[id$="-camera-container"]').forEach(el => el.style.display = 'none');
+            }
         }
 
-        function showPhotoPreview(src) {
-            document.getElementById('photo-preview').src = src;
-            document.getElementById('photo-preview-container').style.display = 'block';
-            document.getElementById('start-camera-btn').style.display = 'none';
+        function showPhotoPreview(prefix, src) {
+            document.getElementById(`${prefix}-photo-preview`).src = src;
+            document.getElementById(`${prefix}-photo-preview-container`).style.display = 'block';
+            document.getElementById(`${prefix}-start-camera-btn`).style.display = 'none';
         }
 
-        function retakePhoto() {
-            resetPhotoState();
-            initCamera();
+        function retakePhoto(prefix) {
+            resetPhotoState(prefix);
+            initCamera(prefix);
         }
 
-        function resetPhotoState() {
-            stopCamera();
+        function resetPhotoState(prefix) {
+            stopCamera(prefix);
             capturedPhotoBase64 = null;
-            document.getElementById('photo-preview').src = '';
-            document.getElementById('photo-preview-container').style.display = 'none';
-            document.getElementById('start-camera-btn').style.display = 'block';
-            document.getElementById('camera-container').style.display = 'none';
+            const previewImg = document.getElementById(`${prefix}-photo-preview`);
+            if (previewImg) previewImg.src = '';
+            const previewContainer = document.getElementById(`${prefix}-photo-preview-container`);
+            if (previewContainer) previewContainer.style.display = 'none';
+            const startBtn = document.getElementById(`${prefix}-start-camera-btn`);
+            if (startBtn) startBtn.style.display = 'block';
         }
 
         function closeCompleteModal() {
-            stopCamera();
+            stopCamera('complete');
             document.getElementById('completeModal').style.display = 'none';
         }
 
@@ -413,10 +447,18 @@
             document.getElementById('edit-returnDate').value = loan.returnDate;
             document.getElementById('edit-deposit').value = loan.deposit;
 
+            // Handle photo in edit modal
+            resetPhotoState('edit');
+            if (loan.photo) {
+                capturedPhotoBase64 = loan.photo;
+                showPhotoPreview('edit', loan.photo);
+            }
+
             document.getElementById('editModal').style.display = 'flex';
         }
 
         function closeModal() {
+            stopCamera('edit');
             document.getElementById('editModal').style.display = 'none';
         }
 
@@ -431,7 +473,8 @@
                 email: document.getElementById('edit-email').value,
                 phone: document.getElementById('edit-phone').value,
                 returnDate: document.getElementById('edit-returnDate').value,
-                deposit: document.getElementById('edit-deposit').value
+                deposit: document.getElementById('edit-deposit').value,
+                photo: capturedPhotoBase64 // Include photo in update
             };
 
             // Basic logic: if returnDate changed and looks like a time, update returnISO

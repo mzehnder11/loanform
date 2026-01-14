@@ -10,9 +10,14 @@ app.use(bodyParser.json({ limit: '5mb' }));
 app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
 app.use(express.static('public'));
 
-const DATA_FILE = path.join(__dirname, 'loans.json');
+const DATA_FILE = path.join(__dirname, 'data.json');
 const ADMIN_FILE = path.join(__dirname, 'admin.json');
 const SECRET = 'bbz-secret-2026';
+
+// Initialize files if they don't exist
+if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, '[]');
+}
 
 // Robust JSON loader
 function loadJSON(file, defaultValue = []) {

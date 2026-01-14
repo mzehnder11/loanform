@@ -318,7 +318,8 @@ input:focus {
     transition: all 0.2s ease;
     border-radius: 2px;
     color: #666;
-    margin-bottom: 0; /* Reset global label margin */
+    margin-bottom: 0;
+    /* Reset global label margin */
 }
 
 .user-type-option input:checked+.user-type-label {
@@ -562,6 +563,8 @@ button.btn-primary:hover {
     width: 95%;
     max-width: 600px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 /* Responsive */
