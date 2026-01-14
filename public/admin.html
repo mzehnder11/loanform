@@ -220,7 +220,10 @@
                 <div class="form-group">
                     <input type="password" id="confirm-password" required placeholder="Passwort bestätigen...">
                 </div>
-                <button type="submit" class="btn-primary">Passwort festlegen</button>
+                <p id="onboarding-error"
+                    style="color: #e74c3c; font-size: 0.85rem; margin-top: -1rem; margin-bottom: 1rem; display: none;">
+                    Die Passwörter stimmen nicht überein.</p>
+                <button type="submit" class="btn-primary" id="onboarding-submit">Passwort festlegen</button>
             </form>
         </div>
     </div>
@@ -292,13 +295,38 @@
             }
         }
 
+        const newPassInput = document.getElementById('new-password');
+        const confirmPassInput = document.getElementById('confirm-password');
+        const onboardingError = document.getElementById('onboarding-error');
+        const onboardingSubmit = document.getElementById('onboarding-submit');
+
+        function validateOnboarding() {
+            const pass = newPassInput.value;
+            const confirm = confirmPassInput.value;
+
+            if (confirm && pass !== confirm) {
+                onboardingError.style.display = 'block';
+                onboardingSubmit.disabled = true;
+                onboardingSubmit.style.opacity = '0.5';
+                onboardingSubmit.style.cursor = 'not-allowed';
+            } else {
+                onboardingError.style.display = 'none';
+                onboardingSubmit.disabled = false;
+                onboardingSubmit.style.opacity = '1';
+                onboardingSubmit.style.cursor = 'pointer';
+            }
+        }
+
+        newPassInput.addEventListener('input', validateOnboarding);
+        confirmPassInput.addEventListener('input', validateOnboarding);
+
         document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const pass = document.getElementById('new-password').value;
-            const confirm = document.getElementById('confirm-password').value;
+            const pass = newPassInput.value;
+            const confirm = confirmPassInput.value;
 
             if (pass !== confirm) {
-                showToast('Passwörter stimmen nicht überein!');
+                onboardingError.style.display = 'block';
                 return;
             }
 
