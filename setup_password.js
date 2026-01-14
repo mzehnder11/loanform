@@ -1,7 +1,8 @@
 const fs = require('fs');
 const crypto = require('crypto');
 
-const password = '1Qay2Wsx';
+// Hier das eigene Passwort, welches man festlegen möchte eintragen und dann dieses script mit Node ausführen.
+const password = 'Eigenes_Passwort';
 const hash = crypto.createHash('sha256').update(password).digest('hex');
 
 const config = {
