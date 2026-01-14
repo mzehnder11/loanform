@@ -1,18 +1,1 @@
-[
-  {
-    "id": 1768337166793,
-    "lastname": "qwedq",
-    "firstname": "wefw",
-    "class": "wefw",
-    "email": "wefwe@wefwe",
-    "phone": "123412",
-    "returnDate": "23:04",
-    "returnISO": "2026-01-13T22:04:00.000Z",
-    "type": "Student",
-    "isComplete": false,
-    "device": "-",
-    "deposit": "-",
-    "returned": false,
-    "timestamp": "2026-01-13T20:46:06.793Z"
-  }
-]
+[]
