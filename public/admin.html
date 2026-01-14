@@ -203,6 +203,9 @@
                 <div class="form-group">
                     <input type="password" id="password" required placeholder="Passwort...">
                 </div>
+                <p id="login-error"
+                    style="color: #e74c3c; font-size: 0.85rem; margin-top: -1rem; margin-bottom: 1rem; display: none;">
+                    Falsches Passwort. Bitte erneut versuchen.</p>
                 <button type="submit" class="btn-primary">Einloggen</button>
             </form>
         </div>
@@ -297,6 +300,9 @@
                         renderList(data.loans);
                     }
                 } else {
+                    const errorEl = document.getElementById('login-error');
+                    errorEl.style.display = 'block';
+                    document.getElementById('password').value = '';
                     showToast('Falsches Passwort!');
                 }
             } catch (error) {
@@ -304,6 +310,11 @@
                 showToast('Verbindungsfehler.');
             }
         }
+
+        // Hide error message when typing
+        document.getElementById('password').addEventListener('input', () => {
+            document.getElementById('login-error').style.display = 'none';
+        });
 
         function showCompleteModal(id) {
             const loan = loansData.find(l => l.id == id);
