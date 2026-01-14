@@ -26,15 +26,13 @@ Dies ist eine webbasierte Anwendung zur Verwaltung von Materialausleihen. Sie er
 
 ## Konfiguration
 
-Bevor die Anwendung genutzt werden kann, muss das Administrator-Passwort konfiguriert werden.
+Das Administrator-Passwort kann direkt über die Weboberfläche festgelegt werden.
 
-1. Öffnen Sie die Datei `setup_password.js`.
-2. Ändern Sie bei Bedarf das Passwort in Zeile 4.
-3. Führen Sie das Skript aus, um die `admin.json` zu erstellen:
-   ```bash
-   node setup_password.js
-   ```
-4. Aus Sicherheitsgründen die `setup_password.js` danach löschen.
+1. Starten Sie den Server (siehe unten).
+2. Öffnen Sie das Admin-Portal (`http://localhost:3000/admin.html`).
+3. Falls noch kein Passwort gesetzt wurde, erscheint automatisch eine Setup-Maske, in der Sie das Passwort festlegen können.
+
+Alternativ kann das Passwort weiterhin manuell über das Hilfsskript `setup_password.js` gesetzt werden (beachten Sie die Kommentare in der Datei).
 
 ## Starten der Anwendung
 

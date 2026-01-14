@@ -181,6 +181,35 @@ app.post('/api/admin/loans', (req, res) => {
     }
 });
 
+// Check if admin is set up
+app.get('/api/admin/status', (req, res) => {
+    const config = loadJSON(ADMIN_FILE, null);
+    res.json({ setup: !!(config && config.passwordHash) });
+});
+
+// Initial setup
+app.post('/api/admin/setup', (req, res) => {
+    const { password } = req.body;
+    const config = loadJSON(ADMIN_FILE, null);
+
+    if (config && config.passwordHash) {
+        return res.status(403).json({ error: 'Setup already completed' });
+    }
+
+    if (!password || password.length < 4) {
+        return res.status(400).json({ error: 'Passwort zu kurz' });
+    }
+
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    const newConfig = { passwordHash: hash };
+
+    if (saveJSON(ADMIN_FILE, newConfig)) {
+        res.json({ success: true });
+    } else {
+        res.status(500).json({ error: 'Fehler beim Speichern' });
+    }
+});
+
 // Toggle return status
 app.post('/api/admin/return', (req, res) => {
     const { token, id, status } = req.body;

@@ -208,6 +208,23 @@
         </div>
     </div>
 
+    <!-- Onboarding Overlay -->
+    <div id="onboarding-overlay" style="display:none;">
+        <div class="login-box">
+            <h2>Admin Setup</h2>
+            <p style="margin-bottom: 1rem; color: #666;">Erstellen Sie ein Administrator-Passwort</p>
+            <form id="onboardingForm">
+                <div class="form-group">
+                    <input type="password" id="new-password" required placeholder="Passwort...">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="confirm-password" required placeholder="Passwort bestätigen...">
+                </div>
+                <button type="submit" class="btn-primary">Passwort festlegen</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentToken = '';
         let loansData = [];
@@ -242,10 +259,72 @@
             return null;
         }
 
-        window.addEventListener('load', () => {
-            const savedToken = getCookie('admin_token');
-            if (savedToken) {
-                verifyToken(savedToken);
+        window.addEventListener('load', async () => {
+            const status = await checkAdminStatus();
+            if (!status.setup) {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('onboarding-overlay').style.display = 'flex';
+                // Add CSS for onboarding overlay (reusing login-overlay style but showing flex)
+                document.getElementById('onboarding-overlay').style.position = 'fixed';
+                document.getElementById('onboarding-overlay').style.top = '0';
+                document.getElementById('onboarding-overlay').style.left = '0';
+                document.getElementById('onboarding-overlay').style.width = '100%';
+                document.getElementById('onboarding-overlay').style.height = '100%';
+                document.getElementById('onboarding-overlay').style.background = '#ffffff';
+                document.getElementById('onboarding-overlay').style.alignItems = 'center';
+                document.getElementById('onboarding-overlay').style.justifyContent = 'center';
+                document.getElementById('onboarding-overlay').style.zIndex = '9999';
+            } else {
+                const savedToken = getCookie('admin_token');
+                if (savedToken) {
+                    verifyToken(savedToken);
+                }
+            }
+        });
+
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch('/api/admin/status');
+                return await response.json();
+            } catch (e) {
+                console.error('Error checking status:', e);
+                return { setup: true }; // Fallback to login if error
+            }
+        }
+
+        document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-password').value;
+
+            if (pass !== confirm) {
+                showToast('Passwörter stimmen nicht überein!');
+                return;
+            }
+
+            if (pass.length < 4) {
+                showToast('Passwort muss mindestens 4 Zeichen lang sein.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pass })
+                });
+
+                if (response.ok) {
+                    showToast('Admin erfolgreich eingerichtet!');
+                    document.getElementById('onboarding-overlay').style.display = 'none';
+                    document.getElementById('login-overlay').style.display = 'flex';
+                } else {
+                    const data = await response.json();
+                    showToast(data.error || 'Fehler beim Setup.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Verbindungsfehler.');
             }
         });
 
