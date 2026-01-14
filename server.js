@@ -43,6 +43,27 @@ function saveJSON(file, data) {
     }
 }
 
+// Cleanup old returned loans (older than 30 days)
+function performCleanup() {
+    const loans = loadJSON(DATA_FILE);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const initialCount = loans.length;
+    const filteredLoans = loans.filter(loan => {
+        if (loan.returned && loan.returnedAt) {
+            const returnDate = new Date(loan.returnedAt);
+            return returnDate > thirtyDaysAgo;
+        }
+        return true;
+    });
+
+    if (filteredLoans.length !== initialCount) {
+        console.log(`Cleanup: Removed ${initialCount - filteredLoans.length} old entries (30+ days returned).`);
+        saveJSON(DATA_FILE, filteredLoans);
+    }
+}
+
 // Helper to check password
 function checkPassword(inputPassword) {
     const config = loadJSON(ADMIN_FILE, null);
@@ -106,6 +127,7 @@ app.post('/api/admin/update', (req, res) => {
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
     if (verifyToken(token)) {
+        performCleanup(); // Clean up before sending
         const loans = loadJSON(DATA_FILE);
         res.json({ authorized: true, loans });
     } else {
@@ -116,6 +138,7 @@ app.post('/api/admin/verify', (req, res) => {
 app.post('/api/admin/loans', (req, res) => {
     const { password } = req.body;
     if (checkPassword(password)) {
+        performCleanup(); // Clean up before sending
         const loans = loadJSON(DATA_FILE);
         const token = createToken();
         res.json({ authorized: true, loans, token });
@@ -134,7 +157,8 @@ app.post('/api/admin/return', (req, res) => {
             if (String(loan.id) === String(id)) {
                 updated = true;
                 const newStatus = (typeof status === 'boolean') ? status : !loan.returned;
-                return { ...loan, returned: newStatus };
+                const returnedAt = newStatus ? new Date().toISOString() : null;
+                return { ...loan, returned: newStatus, returnedAt };
             }
             return loan;
         });
@@ -151,5 +175,6 @@ app.post('/api/admin/return', (req, res) => {
 });
 
 app.listen(PORT, () => {
+    performCleanup(); // Initial cleanup on start
     console.log(`Server running at http://localhost:${PORT}`);
 });
