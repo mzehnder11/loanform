@@ -111,6 +111,21 @@
             <form id="editForm">
                 <input type="hidden" id="edit-id">
                 <div class="form-group">
+                    <label>Typ</label>
+                    <div class="user-type-selector" style="margin: 1rem 0;">
+                        <div class="user-type-option">
+                            <input type="radio" id="edit-type-student" name="editType" value="Student"
+                                onchange="toggleEditFields()">
+                            <label for="edit-type-student" class="user-type-label">Lernende/r</label>
+                        </div>
+                        <div class="user-type-option">
+                            <input type="radio" id="edit-type-staff" name="editType" value="Staff"
+                                onchange="toggleEditFields()">
+                            <label for="edit-type-staff" class="user-type-label">Lehrperson / Mitarbeiter/in</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>Gerät</label>
                     <input type="text" id="edit-device" required>
                 </div>
@@ -124,11 +139,11 @@
                         <input type="text" id="edit-lastname" required>
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group student-field">
                     <label>Klasse</label>
                     <input type="text" id="edit-class">
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" class="student-field">
                     <div class="form-group">
                         <label>E-Mail</label>
                         <input type="email" id="edit-email">
@@ -143,12 +158,12 @@
                         <label>Fällig bis</label>
                         <input type="text" id="edit-returnDate" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group student-field">
                         <label>Depot</label>
                         <input type="text" id="edit-deposit">
                     </div>
                 </div>
-                <div class="form-group" id="edit-photo-group">
+                <div class="form-group" id="edit-photo-group" style="margin-bottom: 50px;">
                     <label>Depot Foto</label>
                     <div id="edit-camera-container" style="display:none; margin-bottom: 0.5rem; position: relative;">
                         <video id="edit-video" width="100%" height="auto" autoplay
@@ -432,6 +447,26 @@
 
         let currentEditLoan = null;
 
+        function toggleEditFields() {
+            const isStudent = document.getElementById('edit-type-student').checked;
+            const studentFields = document.querySelectorAll('.student-field');
+            const photoGroup = document.getElementById('edit-photo-group');
+
+            studentFields.forEach(el => {
+                if (isStudent) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            if (isStudent) {
+                photoGroup.classList.remove('hidden');
+            } else {
+                photoGroup.classList.add('hidden');
+            }
+        }
+
         function showEditModal(id) {
             const loan = loansData.find(l => l.id == id);
             if (!loan) return;
@@ -446,6 +481,15 @@
             document.getElementById('edit-phone').value = loan.phone;
             document.getElementById('edit-returnDate').value = loan.returnDate;
             document.getElementById('edit-deposit').value = loan.deposit;
+
+            // Set type
+            const type = loan.type || 'Student';
+            if (type === 'Staff') {
+                document.getElementById('edit-type-staff').checked = true;
+            } else {
+                document.getElementById('edit-type-student').checked = true;
+            }
+            toggleEditFields();
 
             // Handle photo in edit modal
             resetPhotoState('edit');
@@ -474,6 +518,7 @@
                 phone: document.getElementById('edit-phone').value,
                 returnDate: document.getElementById('edit-returnDate').value,
                 deposit: document.getElementById('edit-deposit').value,
+                type: document.querySelector('input[name="editType"]:checked').value,
                 photo: capturedPhotoBase64 // Include photo in update
             };
 
