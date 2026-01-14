@@ -318,6 +318,7 @@ input:focus {
     transition: all 0.2s ease;
     border-radius: 2px;
     color: #666;
+    margin-bottom: 0; /* Reset global label margin */
 }
 
 .user-type-option input:checked+.user-type-label {
