@@ -107,7 +107,7 @@
             <div class="modal-header">
                 <h2 style="margin:0;">Ausleihe bearbeiten</h2>
             </div>
-            <form id="editForm">
+            <form id="editForm" novalidate>
                 <input type="hidden" id="edit-id">
                 <div class="form-group" style="margin-top: 30px;">
                     <label>Typ</label>
@@ -450,6 +450,9 @@
             const isStudent = document.getElementById('edit-type-student').checked;
             const studentFields = document.querySelectorAll('.student-field');
             const photoGroup = document.getElementById('edit-photo-group');
+            const emailInput = document.getElementById('edit-email');
+            const classInput = document.getElementById('edit-class');
+            const phoneInput = document.getElementById('edit-phone');
 
             studentFields.forEach(el => {
                 if (isStudent) {
@@ -461,8 +464,17 @@
 
             if (isStudent) {
                 photoGroup.classList.remove('hidden');
+                emailInput.type = 'email';
+                emailInput.required = true;
+                classInput.required = true;
+                phoneInput.required = true;
             } else {
                 photoGroup.classList.add('hidden');
+                // Change type to text and remove required to avoid hidden validation errors (e.g. with "-" value)
+                emailInput.type = 'text';
+                emailInput.required = false;
+                classInput.required = false;
+                phoneInput.required = false;
             }
         }
 
@@ -482,8 +494,8 @@
             document.getElementById('edit-deposit').value = loan.deposit;
 
             // Set type
-            const type = loan.type || 'Student';
-            if (type === 'Staff') {
+            const type = (loan.type || 'Student').toLowerCase();
+            if (type === 'staff') {
                 document.getElementById('edit-type-staff').checked = true;
             } else {
                 document.getElementById('edit-type-student').checked = true;
@@ -508,6 +520,7 @@
         document.getElementById('editForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
+            const typeRadio = document.querySelector('input[name="editType"]:checked');
             const updateData = {
                 device: document.getElementById('edit-device').value,
                 firstname: document.getElementById('edit-firstname').value,
@@ -517,7 +530,7 @@
                 phone: document.getElementById('edit-phone').value,
                 returnDate: document.getElementById('edit-returnDate').value,
                 deposit: document.getElementById('edit-deposit').value,
-                type: document.querySelector('input[name="editType"]:checked').value,
+                type: typeRadio ? typeRadio.value : (currentEditLoan.type || 'Student'),
                 photo: capturedPhotoBase64 // Include photo in update
             };
 
@@ -597,13 +610,33 @@
             }
 
             filteredLoans.sort((a, b) => {
-                if (a.returned === b.returned) {
-                    if (a.isComplete === b.isComplete) {
-                        return b.id - a.id;
-                    }
+                // 1. Sort by returned status (unreturned first)
+                if (a.returned !== b.returned) {
+                    return a.returned ? 1 : -1;
+                }
+
+                // 2. Sort by completeness (incomplete first)
+                if (a.isComplete !== b.isComplete) {
                     return a.isComplete === false ? -1 : 1;
                 }
-                return a.returned ? 1 : -1;
+
+                // 3. Sort by due date (returnISO) within categories
+                // Most urgent (oldest date/soonest due) first
+                const dateA = a.returnISO ? new Date(a.returnISO) : null;
+                const dateB = b.returnISO ? new Date(b.returnISO) : null;
+
+                if (dateA && dateB) {
+                    if (dateA.getTime() !== dateB.getTime()) {
+                        return dateA.getTime() - dateB.getTime();
+                    }
+                } else if (dateA) {
+                    return -1; // Items with dates come first
+                } else if (dateB) {
+                    return 1;
+                }
+
+                // 4. Fallback to ID (newest first)
+                return b.id - a.id;
             });
 
             filteredLoans.forEach(loan => {
