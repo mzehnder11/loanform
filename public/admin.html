@@ -72,6 +72,10 @@
                     <label>Depot</label>
                     <input type="text" id="complete-deposit" required>
                 </div>
+                <div class="form-group">
+                    <label>Ausgeliehen von</label>
+                    <input type="text" id="complete-issuedBy">
+                </div>
                 <div class="form-group" id="complete-photo-group">
                     <label>Depot Foto</label>
                     <div id="complete-camera-container"
@@ -161,6 +165,10 @@
                         <label>Depot</label>
                         <input type="text" id="edit-deposit">
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>Ausgeliehen von</label>
+                    <input type="text" id="edit-issuedBy">
                 </div>
                 <div class="form-group" id="edit-photo-group" style="margin-bottom: 50px;">
                     <label>Depot Foto</label>
@@ -324,6 +332,7 @@
             document.getElementById('complete-person-info').textContent = `Person: ${loan.firstname} ${loan.lastname}`;
             document.getElementById('complete-device').value = '';
             document.getElementById('complete-deposit').value = '';
+            document.getElementById('complete-issuedBy').value = '';
 
             // Reset photo
             resetPhotoState('complete');
@@ -424,6 +433,7 @@
             const updateData = {
                 device: document.getElementById('complete-device').value,
                 deposit: depositVal || '-',
+                issuedBy: document.getElementById('complete-issuedBy').value || '-',
                 photo: capturedPhotoBase64,
                 isComplete: true
             };
@@ -503,6 +513,7 @@
             document.getElementById('edit-phone').value = loan.phone;
             document.getElementById('edit-returnDate').value = loan.returnDate;
             document.getElementById('edit-deposit').value = loan.deposit;
+            document.getElementById('edit-issuedBy').value = loan.issuedBy || '-';
 
             // Set type
             const type = (loan.type || 'Student').toLowerCase();
@@ -541,6 +552,7 @@
                 phone: document.getElementById('edit-phone').value,
                 returnDate: document.getElementById('edit-returnDate').value,
                 deposit: document.getElementById('edit-deposit').value,
+                issuedBy: document.getElementById('edit-issuedBy').value,
                 type: typeRadio ? typeRadio.value : (currentEditLoan.type || 'Student'),
                 photo: capturedPhotoBase64 // Include photo in update
             };
@@ -705,6 +717,10 @@
                                         <a href="#" onclick="showImage('${loan.photo}'); return false;" style="color: var(--primary-color); font-weight: bold; font-size: 0.75rem; text-decoration: underline;">FOTO ANZEIGEN</a>
                                     </div>
                                 ` : ''}
+                            </div>
+                            <div class="detail-item">
+                                <strong>Ausgeliehen von</strong>
+                                ${loan.issuedBy || '-'}
                             </div>
                         </div>
                     </div>
