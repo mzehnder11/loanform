@@ -9,5 +9,10 @@ const config = {
     passwordHash: hash
 };
 
-fs.writeFileSync('admin.json', JSON.stringify(config, null, 2));
-console.log('Admin password hashed and saved to admin.json');
+try { // Added try block
+    fs.writeFileSync(path.join(__dirname, 'admin.json'), JSON.stringify(config, null, 2)); // Modified fs.writeFileSync
+    console.log('Passwort erfolgreich gesetzt und admin.json erstellt.'); // Modified console.log message
+    console.log('--- WICHTIG: Löschen Sie nun diese Datei (setup_password.js) aus Sicherheitsgründen! ---'); // Added new console.log
+} catch (err) { // Added catch block
+    console.error('Fehler beim Schreiben der admin.json Datei:', err);
+}
