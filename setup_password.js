@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 
 // Hier das eigene Passwort, welches man festlegen möchte eintragen und dann dieses script mit Node ausführen.

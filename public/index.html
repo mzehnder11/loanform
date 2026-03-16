@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="https://www.bbzolten.ch/wp-content/uploads/2023/12/cropped-BBZ_favicon.png">
+    <link rel="icon" type="image/png" href="img/favicon.png">
 </head>
 
 <body>
@@ -38,7 +38,6 @@
             <form id="loanForm">
                 <!-- Name and Vorname first -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-
                     <div class="form-group">
                         <label for="firstname">Vorname</label>
                         <input type="text" id="firstname" name="firstname" required>
@@ -49,6 +48,19 @@
                         <input type="text" id="lastname" name="lastname" required>
                     </div>
 
+                    <div class="form-group" id="date-group" style="display: none;">
+                        <label id="date-label">Datum (Fällig)</label>
+                        <div class="input-with-icon input-date">
+                            <input type="date" id="returnDate_date" name="returnDate_date">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="time-group">
+                        <label id="time-label">Zeit (Fällig)</label>
+                        <div class="input-with-icon input-time">
+                            <input type="time" id="returnDate_time" name="returnDate_time" required>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- User Type Selection (Multiple Choice) -->
@@ -81,22 +93,6 @@
                     </div>
                 </div>
 
-                <div class="spacer" id="return-section">
-                    <label>Ausleihen bis</label>
-                    <div class="datetime-group">
-                        <div class="form-group" id="date-group" style="display: none;">
-                            <div class="input-with-icon input-date">
-                                <input type="date" id="returnDate_date" name="returnDate_date">
-                            </div>
-                        </div>
-                        <div class="form-group" id="time-group">
-                            <div class="input-with-icon input-time">
-                                <input type="time" id="returnDate_time" name="returnDate_time" required>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <button type="submit" class="btn-primary">Absenden</button>
             </form>
         </div>
@@ -107,7 +103,6 @@
             const isStudent = document.getElementById('type-student').checked;
             const studentFields = document.getElementById('student-only-fields');
             const dateGroup = document.getElementById('date-group');
-            const dateTimeGroup = document.querySelector('.datetime-group');
 
             const classInput = document.getElementById('class');
             const emailInput = document.getElementById('email');
@@ -119,7 +114,6 @@
                 // Show student fields
                 studentFields.classList.remove('hidden');
                 dateGroup.style.display = 'none';
-                dateTimeGroup.style.gridTemplateColumns = '1fr';
 
                 // Add required attributes
                 classInput.required = true;
@@ -129,25 +123,23 @@
                 timeInput.required = true;
 
                 // Set section label
-                document.querySelector('#return-section label').textContent = 'Ausleihen bis (Uhrzeit)';
+                document.getElementById('time-label').textContent = 'Zeit (Fällig)';
             } else {
                 // Hide student fields
                 studentFields.classList.add('hidden');
                 dateGroup.style.display = 'block';
-                dateTimeGroup.style.gridTemplateColumns = '1fr 1fr';
 
                 // Remove required attributes
                 classInput.required = false;
                 emailInput.required = false;
                 phoneInput.required = false;
 
-                // For staff, neither are strictly required according to "one or both", 
-                // but let's handle validation in submit
+                // For staff, neither are strictly required
                 dateInput.required = false;
                 timeInput.required = false;
 
                 // Set section label
-                document.querySelector('#return-section label').textContent = 'Ausleihen bis (Datum / Zeit)';
+                document.getElementById('time-label').textContent = 'Zeit (Fällig)';
             }
         }
 

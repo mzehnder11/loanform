@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="https://www.bbzolten.ch/wp-content/uploads/2023/12/cropped-BBZ_favicon.png">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
 </head>
 
 <body>
@@ -157,9 +157,13 @@
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label>Fällig bis</label>
-                        <input type="text" id="edit-returnDate" required>
+                    <div class="form-group" id="edit-date-container" style="display: none;">
+                        <label>Datum (Fällig)</label>
+                        <input type="date" id="edit-returnDate-date">
+                    </div>
+                    <div class="form-group" id="edit-time-container">
+                        <label>Zeit (Fällig)</label>
+                        <input type="time" id="edit-returnDate-time" required>
                     </div>
                     <div class="form-group student-field">
                         <label>Depot</label>
@@ -474,6 +478,7 @@
             const emailInput = document.getElementById('edit-email');
             const classInput = document.getElementById('edit-class');
             const phoneInput = document.getElementById('edit-phone');
+            const dateContainer = document.getElementById('edit-date-container');
 
             studentFields.forEach(el => {
                 if (isStudent) {
@@ -489,13 +494,14 @@
                 emailInput.required = true;
                 classInput.required = true;
                 phoneInput.required = true;
+                if (dateContainer) dateContainer.style.display = 'none';
             } else {
                 photoGroup.classList.add('hidden');
-                // Change type to text and remove required to avoid hidden validation errors (e.g. with "-" value)
                 emailInput.type = 'text';
                 emailInput.required = false;
                 classInput.required = false;
                 phoneInput.required = false;
+                if (dateContainer) dateContainer.style.display = 'block';
             }
         }
 
@@ -511,8 +517,37 @@
             document.getElementById('edit-class').value = loan.class;
             document.getElementById('edit-email').value = loan.email;
             document.getElementById('edit-phone').value = loan.phone;
-            document.getElementById('edit-returnDate').value = loan.returnDate;
             document.getElementById('edit-deposit').value = loan.deposit;
+
+            const dateInput = document.getElementById('edit-returnDate-date');
+            const timeInput = document.getElementById('edit-returnDate-time');
+            dateInput.value = '';
+            timeInput.value = '';
+
+            if (loan.returnISO) {
+                const dateObj = new Date(loan.returnISO);
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                timeInput.value = `${hours}:${minutes}`;
+            } else if (loan.returnDate) {
+                if (loan.returnDate.includes(':') && !loan.returnDate.includes('.')) {
+                    timeInput.value = loan.returnDate;
+                } else {
+                    const parts = loan.returnDate.split(', ');
+                    if (parts.length === 2) {
+                        timeInput.value = parts[1];
+                        const dParts = parts[0].split('.');
+                        if (dParts.length === 3) {
+                            dateInput.value = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
+                        }
+                    }
+                }
+            }
             document.getElementById('edit-issuedBy').value = loan.issuedBy || '-';
 
             // Set type
@@ -543,6 +578,46 @@
             e.preventDefault();
             const id = document.getElementById('edit-id').value;
             const typeRadio = document.querySelector('input[name="editType"]:checked');
+            const isStudent = typeRadio ? (typeRadio.value === 'Student') : (currentEditLoan.type === 'Student');
+
+            const dateVal = document.getElementById('edit-returnDate-date').value;
+            const timeVal = document.getElementById('edit-returnDate-time').value;
+
+            let returnDate = '';
+            let returnISO = '';
+            const now = new Date();
+
+            if (isStudent) {
+                returnDate = timeVal || '12:00';
+                const baseDate = currentEditLoan.returnISO ? new Date(currentEditLoan.returnISO) : now;
+                const [h, m] = returnDate.split(':');
+                baseDate.setHours(parseInt(h) || 0, parseInt(m) || 0, 0, 0);
+                returnISO = baseDate.toISOString();
+            } else {
+                if (dateVal && timeVal) {
+                    const [h, m] = timeVal.split(':');
+                    const isoDate = new Date(dateVal);
+                    isoDate.setHours(parseInt(h) || 0, parseInt(m) || 0, 0, 0);
+                    returnISO = isoDate.toISOString();
+                    const formattedDate = isoDate.toLocaleDateString('de-CH');
+                    returnDate = `${formattedDate}, ${timeVal}`;
+                } else if (dateVal) {
+                    const isoDate = new Date(dateVal);
+                    isoDate.setHours(23, 59, 59, 999);
+                    returnISO = isoDate.toISOString();
+                    returnDate = isoDate.toLocaleDateString('de-CH');
+                } else if (timeVal) {
+                    const [h, m] = timeVal.split(':');
+                    const baseDate = currentEditLoan.returnISO ? new Date(currentEditLoan.returnISO) : now;
+                    baseDate.setHours(parseInt(h) || 0, parseInt(m) || 0, 0, 0);
+                    returnISO = baseDate.toISOString();
+                    returnDate = timeVal;
+                } else {
+                    returnDate = currentEditLoan.returnDate;
+                    returnISO = currentEditLoan.returnISO;
+                }
+            }
+
             const updateData = {
                 device: document.getElementById('edit-device').value,
                 firstname: document.getElementById('edit-firstname').value,
@@ -550,23 +625,15 @@
                 class: document.getElementById('edit-class').value,
                 email: document.getElementById('edit-email').value,
                 phone: document.getElementById('edit-phone').value,
-                returnDate: document.getElementById('edit-returnDate').value,
+                returnDate: returnDate,
                 deposit: document.getElementById('edit-deposit').value,
                 issuedBy: document.getElementById('edit-issuedBy').value,
                 type: typeRadio ? typeRadio.value : (currentEditLoan.type || 'Student'),
-                photo: capturedPhotoBase64 // Include photo in update
+                photo: capturedPhotoBase64
             };
 
-            // Basic logic: if returnDate changed and looks like a time, update returnISO
-            if (currentEditLoan && updateData.returnDate !== currentEditLoan.returnDate) {
-                if (updateData.returnDate.includes(':') && !updateData.returnDate.includes('.')) {
-                    // It's likely just a time (HH:MM)
-                    const now = new Date();
-                    const [h, m] = updateData.returnDate.split(':');
-                    const isoDate = new Date(now);
-                    isoDate.setHours(parseInt(h), parseInt(m), 0, 0);
-                    updateData.returnISO = isoDate.toISOString();
-                }
+            if (returnISO) {
+                updateData.returnISO = returnISO;
             }
 
             try {
